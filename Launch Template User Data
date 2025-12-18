@@ -1,0 +1,22 @@
+#!/bin/bash
+set -e
+
+yum update -y
+yum install -y httpd php php-mysqlnd amazon-efs-utils
+
+systemctl start httpd
+systemctl enable httpd
+
+# Mounta EFS
+mkdir -p /var/www/html
+mount -t efs -o tls fs-0dbb10907c3506381.efs.eu-north-1.amazonaws.com:/ /var/www/html
+echo "fs-0dbb10907c3506381.efs.eu-north-1.amazonaws.com:/ /var/www/html efs _netdev,tls 0 0" >> /etc/fstab
+
+usermod -a -G apache ec2-user
+
+sudo chown -R ec2-user:apache /var/www
+sudo chmod 2775 /var/www && find /var/www -type d -exec sudo chmod 2775 {} \;
+find /var/www -type f -exec sudo chmod 0664 {} \;
+
+# Restart Apache
+systemctl restart httpd
